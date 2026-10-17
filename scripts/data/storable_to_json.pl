@@ -7,6 +7,7 @@ use Storable qw(fd_retrieve);
 use JSON;
 use File::Path qw(make_path);
 use Scalar::Util qw(blessed reftype refaddr);
+use MIME::Base64 qw(encode_base64);
 
 my $cache_dir = $ARGV[0] or die "Usage: $0 cache_dir output_dir [chr1,chr2,...]\n";
 my $output_dir = $ARGV[1] or die "Usage: $0 cache_dir output_dir [chr1,chr2,...]\n";
@@ -167,6 +168,12 @@ sub extract_prediction_matrix {
     my %out;
     for my $k (qw(analysis sub_analysis peptide_length predictions_data)) {
         $out{$k} = $pm->{$k} if defined $pm->{$k};
+    }
+    # A Storable ProteinFunctionPredictionMatrix keeps the gzip-compressed matrix
+    # in `matrix`; vep-rs reads those same bytes base64-encoded from
+    # `predictions_data`, the field the native cache builder writes.
+    if (!defined $out{predictions_data} && defined $pm->{matrix} && length $pm->{matrix}) {
+        $out{predictions_data} = encode_base64($pm->{matrix}, '');
     }
     return \%out;
 }

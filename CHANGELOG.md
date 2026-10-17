@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - A JSON cache's variation shards may be gzip-compressed as `.json.gz`, as its transcript shards already could; the loader used to skip them without a warning, so a cache with gzipped variations annotated no co-located variants.
+- `storable_to_json.pl` carries the Storable cache's SIFT and PolyPhen matrices, written base64-encoded as `predictions_data`; a converted cache used to carry none, so `--sift` and `--polyphen` printed nothing on it. Caches converted earlier need converting again.
 
 ## [0.4.0] - 2026-10-16
 

@@ -50,8 +50,8 @@ JSON layout for chromosomes 1-22, X, Y and MT, with an `info.json` derived from 
 to `--json_cache`. The published concordance figures were measured on such a conversion ([scripts/README.md](../scripts/README.md#reproducing-the-published-concordance)), which holds the transcript set identical between the two engines; the converted caches carry 195,232 transcripts (GRCh37) and 505,231
 (GRCh38); the GRCh37 conversion is of the cache-version-113 Storable that VEP release 115 ships
 for that assembly, which differs from the cache-version-115 build in 310 of those transcripts
-(the `storable_113_*` columns of `manuscript/data/transcript_set_parity.csv`). A converted cache carries no variation data and no SIFT
-or PolyPhen matrices.
+(the `storable_113_*` columns of `manuscript/data/transcript_set_parity.csv`). A converted cache carries no variation data; it carries the
+Storable's SIFT and PolyPhen matrices ([below](#sift-and-polyphen-predictions)).
 
 The conversion carries each translation's sequence edits (`seq_edits`: the initial-methionine,
 selenocysteine and amino-acid-substitution edits VEP applies to the reference peptide at
@@ -75,4 +75,4 @@ vep-cache-builder --release 116 --assembly GRCh38 --output-dir /path/to/cache \
 vep -i input.vcf --sift b --polyphen b --json_cache /path/to/cache --offline
 ```
 
-A cache converted from a Perl VEP Storable cache carries no matrices: the converter reads a `predictions_data` field that only the native builder writes, so `--sift` and `--polyphen` print nothing on a converted cache. The `dbNSFP` plugin is a separate, unsupported route to third-party SIFT and PolyPhen scores ([plugins.md](plugins.md#not-supported-dbnsfp)).
+A cache converted from a Perl VEP Storable cache carries the Storable's own matrices: each `ProteinFunctionPredictionMatrix` keeps its gzip-compressed matrix in `matrix`, and `storable_to_json.pl` writes those bytes base64-encoded as `predictions_data`, the field the native builder writes. A cache converted before the converter did this, the published conversions among them, carries none, and `--sift` and `--polyphen` print nothing on it; convert it again. On the GRCh38 chromosome 22 transcripts of the Ensembl release 116 cache the matrices take the gzipped shards from 6 MB to 123 MB, and SIFT and PolyPhen then match Ensembl VEP 116 on 3,254 of 3,257 and 1,492 of 1,495 annotated rows of the HG002 benchmark calls; the remaining rows are one variant. The `dbNSFP` plugin is a separate, unsupported route to third-party SIFT and PolyPhen scores ([plugins.md](plugins.md#not-supported-dbnsfp)).

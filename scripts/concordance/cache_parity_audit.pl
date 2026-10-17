@@ -169,8 +169,8 @@ sub field_keys {
 #
 # storable_to_json.pl whitelists fields, renames the underscore-prefixed Perl internals,
 # flattens the UTR objects to sequence strings, replaces the exon coordinate mapper with
-# a pair list, and copies prediction matrices only from a `predictions_data` field that
-# the Storable cache does not carry. Each entry names the behaviour that accounts for
+# a pair list, and writes each prediction matrix's gzip bytes base64-encoded as
+# `predictions_data`. Each entry names the behaviour that accounts for
 # a Storable path being absent under its own name on the JSON side.
 my %RENAME = (
     '_gene_stable_id'                 => 'gene_stable_id',
@@ -196,8 +196,10 @@ my @DROPPED = (
     [qr/^translation\.transcript$/,            'back-reference to the enclosing transcript'],
     [qr/^_variation_effect_feature_cache\.seq_edits$/, 'seq_edits: optional in the JSON cache; a cache without the key loads none and reads the reference peptide from the cached translation'],
     [qr/^_variation_effect_feature_cache\.mapper\.exon_coord_mapper(?:\.|$)/, 'exon coordinate mapper: replaced by mapper.pairs'],
-    [qr/^_variation_effect_feature_cache\.protein_function_predictions\.\w+\.(?:matrix|matrix_compressed|translation_md5)$/,
-        'prediction matrices are not converted: the converter reads predictions_data, which only the native cache builder writes'],
+    [qr/^_variation_effect_feature_cache\.protein_function_predictions\.\w+\.matrix$/,
+        'prediction matrix: carried base64-encoded as predictions_data'],
+    [qr/^_variation_effect_feature_cache\.protein_function_predictions\.\w+\.(?:matrix_compressed|translation_md5)$/,
+        'matrix_compressed and translation_md5: not read; vep-rs takes every matrix as gzip and attaches it to its own transcript'],
     [qr/^_variation_effect_feature_cache\.(?:five|three)_prime_utr\./, 'UTR object flattened to its sequence string'],
 );
 my %DERIVED = (
