@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `scripts/data/all_vars_to_json.py` converts a Storable cache's co-located variants (`all_vars.gz`) to the JSON cache's `variations/` shards, plain or gzipped, so a converted cache can annotate `Existing_variation`, the frequency columns and the rest of `--everything` from the same cache Ensembl VEP reads.
+
 ### Fixed
 
 - A JSON cache's variation shards may be gzip-compressed as `.json.gz`, as its transcript shards already could; the loader used to skip them without a warning, so a cache with gzipped variations annotated no co-located variants.

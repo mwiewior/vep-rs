@@ -50,8 +50,20 @@ JSON layout for chromosomes 1-22, X, Y and MT, with an `info.json` derived from 
 to `--json_cache`. The published concordance figures were measured on such a conversion ([scripts/README.md](../scripts/README.md#reproducing-the-published-concordance)), which holds the transcript set identical between the two engines; the converted caches carry 195,232 transcripts (GRCh37) and 505,231
 (GRCh38); the GRCh37 conversion is of the cache-version-113 Storable that VEP release 115 ships
 for that assembly, which differs from the cache-version-115 build in 310 of those transcripts
-(the `storable_113_*` columns of `manuscript/data/transcript_set_parity.csv`). A converted cache carries no variation data; it carries the
-Storable's SIFT and PolyPhen matrices ([below](#sift-and-polyphen-predictions)).
+(the `storable_113_*` columns of `manuscript/data/transcript_set_parity.csv`). A converted cache carries the
+Storable's SIFT and PolyPhen matrices ([below](#sift-and-polyphen-predictions)). `storable_to_json.pl`
+writes no variation data; `scripts/data/all_vars_to_json.py` adds it from the same cache. A Storable cache
+keeps each chromosome's co-located variants in `<chr>/all_vars.gz`, in the columns its `info.txt` names
+under `variation_cols`, and the script writes them as the `variations/<chr>/<start>-<end>.json` shards
+`--check_existing`, the `--af*` flags and `--everything` read:
+
+```bash
+scripts/data/all_vars_to_json.py ~/.vep/homo_sapiens/116_GRCh38 $HOME/.vep/json_cache/homo_sapiens/116_GRCh38 [--gzip]
+```
+
+It needs only Python 3.10, outside the container. Without a chromosome list it converts every chromosome
+with an `all_vars.gz`; `--gzip` writes `.json.gz` shards, about a tenth of the size (417 MB rather than
+4,435 MB for GRCh38 chromosome 22 of release 116), which vep-rs releases up to 0.4.0 do not read.
 
 The conversion carries each translation's sequence edits (`seq_edits`: the initial-methionine,
 selenocysteine and amino-acid-substitution edits VEP applies to the reference peptide at
