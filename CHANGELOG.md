@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- A JSON cache's variation shards may be gzip-compressed as `.json.gz`, as its transcript shards already could; the loader used to skip them without a warning, so a cache with gzipped variations annotated no co-located variants.
+
 ## [0.4.0] - 2026-10-16
 
 ### Added

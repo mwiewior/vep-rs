@@ -1398,7 +1398,8 @@ pub struct VariationData {
 
 /// Load all variations from the JSON cache directory.
 ///
-/// Directory structure: `{json_cache_dir}/variations/{chr}/{start}-{end}.json`
+/// Directory structure: `{json_cache_dir}/variations/{chr}/{start}-{end}.json`,
+/// a shard optionally gzip-compressed as `.json.gz` (the transcript shards' rule).
 ///
 /// JSON files are parsed in parallel using the rayon thread pool (same
 /// strategy as `load_all_transcripts`).
@@ -1431,7 +1432,7 @@ pub fn load_all_variations(json_cache_dir: &str) -> anyhow::Result<VariationData
         for file_entry in std::fs::read_dir(chr_entry.path())? {
             let file_entry = file_entry?;
             let path = file_entry.path();
-            if path.extension().is_none_or(|e| e != "json") {
+            if !is_shard_path(&path) {
                 continue;
             }
             files.push((chr.clone(), path));
@@ -1442,8 +1443,7 @@ pub fn load_all_variations(json_cache_dir: &str) -> anyhow::Result<VariationData
         .par_iter()
         .map(
             |(chr, path)| -> anyhow::Result<(String, Vec<CachedVariation>)> {
-                let data = std::fs::read(path)
-                    .with_context(|| format!("Failed to read {}", path.display()))?;
+                let data = read_shard(path)?;
                 let json_variations: Vec<JsonVariation> = serde_json::from_slice(&data)
                     .with_context(|| format!("Failed to parse {}", path.display()))?;
                 let converted: Vec<CachedVariation> =
@@ -1697,6 +1697,41 @@ mod tests {
         let data = result.unwrap();
         assert!(data.variations.is_empty());
         assert!(data.position_index.is_empty());
+    }
+
+    /// A variation shard may be gzip-compressed as `.json.gz`, as a transcript
+    /// shard may; it loads beside a plain shard of the same chromosome.
+    #[test]
+    fn gzipped_variation_shards_load_beside_plain_ones() {
+        use std::io::Write as _;
+        let dir = tempfile::Builder::new()
+            .prefix("vep_jc_var_gz_")
+            .tempdir()
+            .unwrap();
+        let chr_dir = dir.path().join("variations").join("21");
+        std::fs::create_dir_all(&chr_dir).unwrap();
+        std::fs::write(
+            chr_dir.join("1-1000000.json"),
+            r#"[{"variation_name":"rs1","start":"100","allele_string":"A/G"}]"#,
+        )
+        .unwrap();
+        let mut enc = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+        enc.write_all(br#"[{"variation_name":"rs2","start":"1000100","allele_string":"C/T"}]"#)
+            .unwrap();
+        std::fs::write(
+            chr_dir.join("1000001-2000000.json.gz"),
+            enc.finish().unwrap(),
+        )
+        .unwrap();
+
+        let data = load_all_variations(dir.path().to_str().unwrap()).unwrap();
+        let mut names: Vec<&str> = data.variations["21"]
+            .iter()
+            .map(|v| v.variation_name.as_str())
+            .collect();
+        names.sort();
+        assert_eq!(names, vec!["rs1", "rs2"]);
+        assert!(data.position_index["21"].contains_key(&1_000_100));
     }
 
     #[test]
